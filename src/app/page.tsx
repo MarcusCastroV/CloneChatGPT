@@ -1,91 +1,148 @@
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-import styles from './page.module.css'
+'use client'
 
-const inter = Inter({ subsets: ['latin'] })
+import { ChatArea } from '@/components/ChatArea'
+import { Footer } from '@/components/Footer'
+import { Header } from '@/components/Header'
+import { Sidebar } from '@/components/Sidebar'
+import { SidebarChatButton } from '@/components/SidebarChatButton'
+import { Chat } from '@/types/Chat'
+import { useEffect, useState } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 
-export default function Home() {
+const Page = () => {
+  const [sidebarOpened, setSidebarOpened] = useState(true)
+  const [chatList, setChatList] = useState<Chat[]>([])
+  const [chatActiveId, setChatActiveId] = useState<string>('')
+  const [chatActive, setChatActive] = useState<Chat>()
+  const [AILoading, setAILoading] = useState(false)
+
+  useEffect(() => {
+    setChatActive(chatList.find((item) => item.id === chatActiveId))
+  }, [chatActiveId, chatList])
+
+  useEffect(() => {
+    if (AILoading) getAIResponse()
+  }, [AILoading])
+
+  const openSidebar = () => setSidebarOpened(true)
+  const closeSidebar = () => setSidebarOpened(false)
+
+  const getAIResponse = () => {
+    setTimeout(() => {
+      let chatListClone = [...chatList]
+      let chatIndex = chatListClone.findIndex(
+        (item) => item.id === chatActiveId
+      )
+      if (chatIndex > -1) {
+        chatListClone[chatIndex].messages.push({
+          id: uuidv4(),
+          author: 'ai',
+          body: 'Esta é apenas uma resposta de teste. A API ainda não está configurada.',
+        })
+      }
+      setChatList(chatListClone)
+      setAILoading(false)
+    }, 2000)
+  }
+
+  const handleClearConversations = () => {
+    if (AILoading) return
+
+    setChatActiveId('')
+    setChatList([])
+  }
+
+  const handleNewChat = () => {
+    if (AILoading) return
+
+    setChatActiveId('')
+    closeSidebar()
+  }
+
+  const handleSendMessage = (message: string) => {
+    if (!chatActiveId) {
+      // Creating new chat
+      let newChatId = uuidv4()
+      setChatList([
+        {
+          id: newChatId,
+          title: message,
+          messages: [{ id: uuidv4(), author: 'me', body: message }],
+        },
+        ...chatList,
+      ])
+      setChatActiveId(newChatId)
+    } else {
+      // Update existing chat
+      let chatListClone = [...chatList]
+      let chatIndex = chatListClone.findIndex(
+        (item) => item.id === chatActiveId
+      )
+      chatListClone[chatIndex].messages.push({
+        id: uuidv4(),
+        author: 'me',
+        body: message,
+      })
+      setChatList(chatListClone)
+    }
+    setAILoading(true)
+  }
+
+  const handleSelectChat = (id: string) => {
+    if (AILoading) return
+
+    let item = chatList.find((item) => item.id === id)
+    if (item) setChatActiveId(item.id)
+    closeSidebar()
+  }
+  const handleDeleteChat = (id: string) => {
+    let chatListClone = [...chatList]
+    let chatIndex = chatListClone.findIndex((item) => item.id === id)
+    chatListClone.splice(chatIndex, 1)
+    setChatList(chatListClone)
+    setChatActiveId('')
+  }
+  const handleEditChat = (id: string, newTitle: string) => {
+    if (newTitle) {
+      let chatListClone = [...chatList]
+      let chatIndex = chatListClone.findIndex((item) => item.id === id)
+      chatListClone[chatIndex].title = newTitle
+      setChatList(chatListClone)
+    }
+  }
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+    <main className='flex min-h-screen bg-gpt-gray'>
+      <Sidebar
+        open={sidebarOpened}
+        onClose={closeSidebar}
+        onClear={handleClearConversations}
+        onNewChat={handleNewChat}
+      >
+        {chatList.map((item) => (
+          <SidebarChatButton
+            key={item.id}
+            chatItem={item}
+            active={item.id === chatActiveId}
+            onClick={handleSelectChat}
+            onDelete={handleDeleteChat}
+            onEdit={handleEditChat}
+          />
+        ))}
+      </Sidebar>
+      <section className='flex flex-col w-full'>
+        <Header
+          openSidebarClick={openSidebar}
+          title={chatActive ? chatActive.title : 'Nova Conversa'}
+          newChatClick={handleNewChat}
         />
-        <div className={styles.thirteen}>
-          <Image src="/thirteen.svg" alt="13" width={40} height={31} priority />
-        </div>
-      </div>
 
-      <div className={styles.grid}>
-        <a
-          href="https://beta.nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+        <ChatArea chat={chatActive} loading={AILoading} />
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+        <Footer onSendMessage={handleSendMessage} disabled={AILoading} />
+      </section>
     </main>
   )
 }
+
+export default Page

@@ -1,3 +1,6 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 :root {
   --max-width: 1100px;
   --border-radius: 12px;
@@ -86,7 +89,7 @@ body {
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
+  color: white;
   background: linear-gradient(
       to bottom,
       transparent,
@@ -104,4 +107,16 @@ a {
   html {
     color-scheme: dark;
   }
+}
+
+::-webkit-scrollbar {
+  width: .5rem;
+  height: 1rem;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(217,217, 227, .8);
+  border-radius: 1rem;
+}
+::-webkit-scrollbar-track {
+  background-color: transparent;
 }
